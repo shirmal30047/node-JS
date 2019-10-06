@@ -1,19 +1,32 @@
-// const mysql = require('mysql2');
+const mongodb = require("mongodb");
+const MongoClient = mongodb.MongoClient;
 
-// const pool = mysql.createPool({
-//     host:'localhost',
-//     user:'root',
-//     database:'node-complete',
-//     password:'root'
-// });
+let _db;
 
-// module.exports= pool.promise();
+const mongoConnect = callback => {
+  MongoClient.connect(
+    "mongodb+srv://Shirmal:300300AzIT@clusters-zklgt.mongodb.net/shop?retryWrites=true&w=majority",
+    { useNewUrlParser: true, useUnifiedTopology: true }
+  )
+    .then(client => {
+      console.log("connected to mongoDB");
+      _db = client.db();
+      callback();
+    })
+    .catch(err => {
+      console.log(err);
+      throw err;
+    });
+};
 
-const Sequelize = require('sequelize');
+const getDb = () => {
+  if (_db) {
+    return _db;
+  } else {
+    throw "No database found";
+  }
+};
 
-const sequelize = new Sequelize('node-complete', 'root', 'root', {
-    dialect: 'mysql',
-    host: 'localhost'
-});
+exports.mongoConnect = mongoConnect;
 
-module.exports = sequelize;
+exports.getDb = getDb;
