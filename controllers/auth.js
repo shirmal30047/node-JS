@@ -1,22 +1,32 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 exports.getLogin = (req, res, next) => {
-  console.log(req.session.isLoggedIn);
+  let message = req.flash("error");
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
   res.render("auth/login", {
     path: "/login",
     pageTitle: "Login",
-    isAuthenticated: req.session.isLoggedIn,
-    csrfToken: req.csrfToken()
+    errorMessage: message
   });
 };
 
 exports.getSignup = (req, res, next) => {
-  console.log(req.session.isLoggedIn);
+  let message = req.flash("error");
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
   res.render("auth/signup", {
     path: "/signup",
     pageTitle: "Siginup",
     isAuthenticated: false,
-    csrfToken: req.csrfToken()
+    csrfToken: req.csrfToken(),
+    errorMessage: message
   });
 };
 
@@ -26,6 +36,7 @@ exports.postLogin = (req, res, next) => {
   User.findOne({ email })
     .then(user => {
       if (!user) {
+        req.flash("error", "Invalid email.");
         return res.redirect("/login");
       }
       return bcrypt.compare(password, user.password).then(doMatch => {
@@ -36,6 +47,7 @@ exports.postLogin = (req, res, next) => {
             res.redirect("/");
           });
         }
+        req.flash("error", "Invalid password.");
         res.redirect("./login");
       });
     })
@@ -52,6 +64,7 @@ exports.postSignup = (req, res, next) => {
   })
     .then(userDoc => {
       if (userDoc) {
+        req.flash("error", "Email Already Exists ");
         return res.redirect("/signup");
       }
       return bcrypt
@@ -74,7 +87,6 @@ exports.postSignup = (req, res, next) => {
 
 exports.postLogout = (req, res, next) => {
   req.session.destroy(err => {
-    console.log(err);
     res.redirect("/");
   });
 };
