@@ -42,13 +42,23 @@ exports.getSignup = (req, res, next) => {
     pageTitle: "Siginup",
     isAuthenticated: false,
     csrfToken: req.csrfToken(),
-    errorMessage: message
+    errorMessage: message,
+    oldInput: { email: "", password: "", confirmPassword: "" },
+    validationErrors: []
   });
 };
 
 exports.postLogin = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/login", {
+      path: "/login",
+      pageTitle: "Login",
+      errorMessage: errors.array()[0].msg
+    });
+  }
   User.findOne({ email })
     .then(user => {
       if (!user) {
@@ -74,7 +84,7 @@ exports.postLogin = (req, res, next) => {
 exports.postSignup = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
-  const confirmPassowrd = req.body.confirmPassowrd;
+  const confirmPassword = req.body.confirmPassword;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).render("auth/signup", {
@@ -82,40 +92,32 @@ exports.postSignup = (req, res, next) => {
       pageTitle: "Siginup",
       isAuthenticated: false,
       csrfToken: req.csrfToken(),
-      errorMessage: errors.array()[0].msg
+      errorMessage: errors.array()[0].msg,
+      oldInput: { email, password, confirmPassword },
+      validationErrors: errors.array()
     });
   }
-  User.findOne({
-    email
-  })
-    .then(userDoc => {
-      if (userDoc) {
-        req.flash("error", "Email Already Exists ");
-        return res.redirect("/signup");
-      }
-      return bcrypt
-        .hash(password, 12)
-        .then(hashPassword => {
-          const user = new User({
-            email,
-            password: hashPassword,
-            cart: { items: [] }
-          });
-          return user.save();
-        })
-        .then(result => {
-          if (result)
-            return transporter
-              .sendMail({
-                to: email,
-                from: "shop@node.com",
-                subject: "Signup Succeeded",
-                html: "<h1>You Successfully Signed Up!<h1>"
-              })
-              .then(result => res.redirect("/login"));
-        });
+  bcrypt
+    .hash(password, 12)
+    .then(hashPassword => {
+      const user = new User({
+        email,
+        password: hashPassword,
+        cart: { items: [] }
+      });
+      return user.save();
     })
-
+    .then(result => {
+      if (result)
+        return transporter
+          .sendMail({
+            to: email,
+            from: "shop@node.com",
+            subject: "Signup Succeeded",
+            html: "<h1>You Successfully Signed Up!<h1>"
+          })
+          .then(result => res.redirect("/login"));
+    })
     .catch(err => console.log(err));
 };
 
